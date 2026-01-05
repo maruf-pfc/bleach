@@ -1,42 +1,54 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
+	"strings"
 
 	"bleach/internal/tui/dashboard"
 	"bleach/internal/tui/menu"
 	"bleach/internal/ops"
 	"bleach/internal/tui/styles"
-	
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-type appsState int
+const Version = "v1.0.1"
+
+type appState int
 const (
-	stateDashboard appsState = iota
-	stateRunning
+	stateIdle appState = iota
+	stateAuth
+	stateStreaming
 )
 
-const Version = "v1.0.0"
+type lineMsg string
+type streamDoneMsg struct{ err error }
+type authResultMsg struct{ err error }
+
+var activeScanner *bufio.Scanner
 
 type model struct {
-	width     int
-	height    int
-	state     appsState
+	width, height int
+	state         appState
 	
 	dashboard dashboard.Model
 	menu      menu.Model
 	
-	outputLog string 
+	logs      []string
+	pendingOp *exec.Cmd
 }
 
 func initialModel() model {
 	return model{
 		dashboard: dashboard.NewModel(),
 		menu:      menu.NewModel(),
-		outputLog: fmt.Sprintf("Ready (v%s). Select an action.", Version),
+		state:     stateIdle,
+		logs:      []string{fmt.Sprintf("Ready (%s). Select an action.", Version)},
 	}
 }
 
@@ -44,123 +56,173 @@ func (m model) Init() tea.Cmd {
 	return tea.Batch(m.dashboard.Init(), m.menu.Init())
 }
 
+func nextLine() tea.Cmd {
+	return func() tea.Msg {
+		if activeScanner != nil && activeScanner.Scan() {
+			return lineMsg(activeScanner.Text())
+		}
+		return nil
+	}
+}
+
+func waitCmd(cmd *exec.Cmd) tea.Cmd {
+	return func() tea.Msg {
+		err := cmd.Wait()
+		return streamDoneMsg{err}
+	}
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	
 	case tea.KeyMsg:
-		if msg.String() == "q" || msg.String() == "ctrl+c" {
-			return m, tea.Quit
+		if m.state == stateStreaming {
+			if msg.String() == "ctrl+c" { return m, tea.Quit }
+			return m, nil
 		}
-		// If running, ignore keys or allow cancel?
-		if m.state == stateRunning {
-			return m, nil 
+		switch msg.String() {
+		case "q", "ctrl+c": return m, tea.Quit
+		case "enter":
+			if m.menu.Selected != nil {
+				return m.handleMenuSelect(m.menu.Selected.Title)
+			}
 		}
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		
-		// Resize Dashboard
-		var dCmd tea.Cmd
-		m.dashboard, dCmd = m.dashboard.Update(msg)
-		cmds = append(cmds, dCmd)
-		
-		// Resize Menu (Bottom Left)
-		// Logic: Menu gets half width? or full width bottom?
-		// Design said: Bottom Left = Menu, Bottom Right = Output.
-		// Let's pass half width to menu.
-		halfWidth := (m.width / 2) - 4
-		m.menu.Width = halfWidth
-		m.menu, _ = m.menu.Update(msg) // just to update width
-		
-	case ops.OpResultMsg:
-		m.state = stateDashboard
-		if msg.Err != nil {
-			m.outputLog = fmt.Sprintf("Error: %v\n%s", msg.Err, msg.Output)
-		} else {
-			m.outputLog = fmt.Sprintf("Success:\n%s", msg.Output)
-		}
-		// Clear selection
-		m.menu.Selected = nil
-	}
-	
-	// Route messages to components
-	// Dashboard always updates (ticks)
-	var dCmd tea.Cmd
-	m.dashboard, dCmd = m.dashboard.Update(msg)
-	cmds = append(cmds, dCmd)
+		var cmd tea.Cmd
+		m.dashboard, cmd = m.dashboard.Update(msg)
+		cmds = append(cmds, cmd)
+		m.menu.Width = (m.width / 2) - 4
+		m.menu, cmd = m.menu.Update(msg)
+		cmds = append(cmds, cmd)
 
-	// Menu updates only if not running
-	if m.state == stateDashboard {
-		newMenu, mCmd := m.menu.Update(msg)
-		m.menu = newMenu
-		cmds = append(cmds, mCmd)
-		
-		// Check selection
-		if m.menu.Selected != nil {
-			// Trigger Action
-			switch m.menu.Selected.Title {
-			case "Exit":
-				return m, tea.Quit
-			case "System Cleanup":
-				m.state = stateRunning
-				m.outputLog = "Running System Cleanup... (Password may be required in terminal if not cached)"
-				cmds = append(cmds, ops.RunCleanupCmd())
-			case "System Updates":
-				m.state = stateRunning
-				m.outputLog = "Running System Updates..."
-				cmds = append(cmds, ops.RunUpdateCmd())
-			case "Maintenance":
-				m.state = stateRunning
-				m.outputLog = "Running Maintenance..."
-				cmds = append(cmds, ops.RunMaintenanceCmd())
-			case "View Logs":
-				m.outputLog = "Log viewing not implemented yet."
-				m.menu.Selected = nil
-			}
+	// Auth Finished
+	case authResultMsg:
+		if msg.err != nil {
+			m.logs = append(m.logs, "Authentication failed.")
+			m.state = stateIdle
+			m.pendingOp = nil
+			return m, nil
 		}
+		
+		m.logs = []string{"Authentication successful.", "Starting operation..."}
+		m.state = stateStreaming
+		
+		cmd := m.pendingOp
+		stdout, _ := cmd.StdoutPipe()
+		stderr, _ := cmd.StderrPipe()
+		
+		if err := cmd.Start(); err != nil {
+			m.logs = append(m.logs, fmt.Sprintf("Error: %v", err))
+			m.state = stateIdle
+			return m, nil
+		}
+
+		activeScanner = bufio.NewScanner(io.MultiReader(stdout, stderr))
+		return m, tea.Batch(nextLine(), waitCmd(cmd))
+
+	// Stream Line
+	case lineMsg:
+		m.logs = append(m.logs, string(msg))
+		maxLines := 20
+		if len(m.logs) > maxLines {
+			m.logs = m.logs[len(m.logs)-maxLines:]
+		}
+		return m, nextLine()
+
+	// Stream Done
+	case streamDoneMsg:
+		activeScanner = nil
+		m.state = stateIdle
+		if msg.err != nil {
+			m.logs = append(m.logs, fmt.Sprintf("Failed: %v", msg.err))
+		} else {
+			m.logs = append(m.logs, "Done.")
+		}
+		return m, nil
+	}
+
+	// Update Components
+	if m.state == stateIdle {
+		var cmd tea.Cmd
+		m.dashboard, cmd = m.dashboard.Update(msg)
+		cmds = append(cmds, cmd)
+		m.menu, cmd = m.menu.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
-func (m model) View() string {
-	if m.width == 0 {
-		return "Initializing..."
+func (m model) handleMenuSelect(title string) (tea.Model, tea.Cmd) {
+	var op *exec.Cmd
+	switch title {
+	case "Exit": return m, tea.Quit
+	case "View Logs": 
+		m.logs = append(m.logs, "Log viewing not implemented yet.")
+		return m, nil
+	case "Quick Clean (System)": op = ops.CmdDeepSystemClean()
+	case "Deep Clean (Dev + Sys)": 
+		op = ops.CmdFullClean()
+	case "System Updates": op = ops.CmdUpdateSystem()
+	case "Maintenance": op = ops.CmdMaintenance()
 	}
+
+	if op != nil {
+		m.pendingOp = op
+		m.state = stateAuth
+		return m, tea.ExecProcess(ops.CmdCheckSudo(), func(err error) tea.Msg {
+			return authResultMsg{err}
+		})
+	}
+	return m, nil
+}
+
+func (m model) View() string {
+	if m.width == 0 { return "Loading..." }
 	
-	// 1. Dashboard (Top)
+	m.dashboard.Width = m.width
 	topView := m.dashboard.View()
+	topHeight := lipgloss.Height(topView)
 	
-	// 2. Bottom Area
-	// Left: Menu
-	menuView := m.menu.View()
+	mainHeight := m.height - topHeight - 3
+	if mainHeight < 5 { mainHeight = 5 }
 	
-	// Right: Output Log
-	// Calculate width for right box
-	rWidth := m.width - m.menu.Width - 6 // margin
-	outputView := styles.Panel.Width(rWidth).Height(6).Render(
-		lipgloss.JoinVertical(lipgloss.Left, 
-			styles.Label.Render("OUTPUT"), 
-			styles.Value.Render(truncate(m.outputLog, 200)), // simple truncate
+	sidebarWidth := 28
+	m.menu.Width = sidebarWidth - 4
+	
+	// Ensure menu doesn't blow up vertical space
+	menuContent := m.menu.View() // just lines
+	
+	menuView := styles.Panel.Width(sidebarWidth - 2).Height(mainHeight - 2).Render(
+		lipgloss.JoinVertical(lipgloss.Left,
+			styles.Label.Render("MENU"),
+			menuContent,
 		),
 	)
 	
-	bottomView := lipgloss.JoinHorizontal(lipgloss.Top, menuView, outputView)
+	logWidth := m.width - sidebarWidth - 4
+	if logWidth < 20 { logWidth = 20 }
+	
+	logContent := strings.Join(m.logs, "\n")
+	
+	statusView := styles.Panel.Width(logWidth).Height(mainHeight - 2).Render(
+		lipgloss.JoinVertical(lipgloss.Left, 
+			styles.Label.Render("STATUS / LOGS"), 
+			styles.Value.Width(logWidth-2).Render(logContent), 
+		),
+	)
+	
+	bottomView := lipgloss.JoinHorizontal(lipgloss.Top, menuView, statusView)
 	
 	return lipgloss.JoinVertical(lipgloss.Left, topView, bottomView)
 }
 
-func truncate(s string, max int) string {
-	if len(s) > max {
-		return s[:max] + "..."
-	}
-	return s
-}
-
 func main() {
-	// Enable mouse? tea.WithMouseCellMotion()
 	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error: %v", err)

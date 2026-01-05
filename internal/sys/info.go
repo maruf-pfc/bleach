@@ -1,7 +1,10 @@
 package sys
 
 import (
+	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -15,6 +18,10 @@ type SystemInfo struct {
 	Kernel   string
 	Uptime   string
 	Shell    string
+	Distro   string
+	PkgCount string
+	Procs    uint64
+	Threads  string
 	CPU      float64
 	RAM      ResourceUsage
 	Disk     ResourceUsage
@@ -34,6 +41,10 @@ func GetSystemInfo() SystemInfo {
 		Kernel:   h.KernelVersion,
 		Uptime:   formatUptime(h.Uptime),
 		Shell:    os.Getenv("SHELL"),
+		Distro:   fmt.Sprintf("%s %s", h.Platform, h.PlatformVersion),
+		PkgCount: getPkgCount(),
+		Procs:    h.Procs,
+		Threads:  getThreadCount(),
 	}
 	
 	// Memory
@@ -53,21 +64,34 @@ func GetSystemInfo() SystemInfo {
 	}
 
 	// CPU
-	// We use the helper to get non-blocking or cached CPU
 	info.CPU = GetCPUPercent()
 
 	return info
 }
 
+func getPkgCount() string {
+	// Try apt/dpkg first
+	out, err := exec.Command("sh", "-c", "dpkg -l | grep ^ii | wc -l").Output()
+	if err == nil {
+		return strings.TrimSpace(string(out)) + " (dpkg)"
+	}
+	// Try rpm
+	out, err = exec.Command("sh", "-c", "rpm -qa | wc -l").Output()
+	if err == nil {
+		return strings.TrimSpace(string(out)) + " (rpm)"
+	}
+	return "?"
+}
+
+func getThreadCount() string {
+	out, err := exec.Command("sh", "-c", "ps -eLf | wc -l").Output()
+	if err == nil {
+		return strings.TrimSpace(string(out))
+	}
+	return "?"
+}
+
 func GetCPUPercent() float64 {
-	// We use a short interval. For a TUI loop, 100ms is okay-ish but might block UI slightly.
-	// ideally we run this in a goroutine/tea.Cmd but for now this is simple.
-	// Better: Use TotalPercent with 0 interval (instant) if we calculated delta ourselves, 
-	// but gopsutil needs interval for delta.
-	// Let's rely on the simplified View update loop time diff or just block 100ms.
-	// actually, tea.Tick handles the scheduling, but this call WILL block the Update loop for 100ms.
-	// To fix this proper, we'd need a separate Msg for "CPUUpdate".
-	// For MVP, blocking 100ms every 1s is acceptable.
 	p, _ := cpu.Percent(100*time.Millisecond, false)
 	if len(p) > 0 {
 		return p[0]
@@ -77,6 +101,5 @@ func GetCPUPercent() float64 {
 
 func formatUptime(seconds uint64) string {
 	d := time.Duration(seconds) * time.Second
-	// formatting logic...
-	return d.String() // simplistic
+	return d.Round(time.Minute).String()
 }

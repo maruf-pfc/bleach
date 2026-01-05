@@ -60,12 +60,13 @@ func (m Model) View() string {
 	// Use styles.Panel (with borders)
 	// Available width = m.Width - 2 (outer margin/border if any)
 	
-	halfWidth := (m.Width / 2) - 4 // minus borders/padding
+	// Safe width reduction to prevent wrapping issues
+	halfWidth := (m.Width / 2) - 6 // minus borders/padding/safety
 
 	leftPanel := m.renderLeftPanel(halfWidth)
 	rightPanel := m.renderRightPanel(halfWidth)
 
-	if m.Width > 90 {
+	if m.Width > 105 {
 		// Side-by-Side
 		return lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, rightPanel)
 	}
@@ -77,16 +78,20 @@ func (m Model) View() string {
 func (m Model) renderLeftPanel(width int) string {
 	// Logo
 	logo := styles.Logo.Render(`
- ____  _each
+ ____  Bleach
 | __ )| | ___  __ _  ___| |__
 |  _ \| |/ _ \/ _` + "`" + ` |/ __| '_ \
 | |_) | |  __/ (_| | (__| | | |
 |____/|_|\___|\__,_|\___|_| |_|`)
 
 	// Info
-	info := fmt.Sprintf("\n\nHost:   %s\nKernel: %s\nUptime: %s\nShell:  %s",
+	info := fmt.Sprintf("\n\nHost:   %s\nDistro: %s\nKernel: %s\nPkgs:   %s\nProcs:  %d\nThreads:%s\nUptime: %s\nShell:  %s",
 		m.SysInfo.Hostname,
+		m.SysInfo.Distro,
 		m.SysInfo.Kernel,
+		m.SysInfo.PkgCount,
+		m.SysInfo.Procs,
+		m.SysInfo.Threads,
 		m.SysInfo.Uptime,
 		m.SysInfo.Shell,
 	)
