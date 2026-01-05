@@ -24,14 +24,12 @@ if ! command -v git &> /dev/null || ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
-# 2. Update/Clone
+# 2. Clean Install
 echo -e "${BLUE}[+] Fetching latest version...${NC}"
-mkdir -p "$INSTALL_DIR"
-if [ -d "$INSTALL_DIR/.git" ]; then
-    cd "$INSTALL_DIR" && git pull -q
-else
-    git clone -q -b "$BRANCH" "$REPO_URL" "$INSTALL_DIR"
+if [ -d "$INSTALL_DIR" ]; then
+    rm -rf "$INSTALL_DIR"
 fi
+git clone -q -b "$BRANCH" "$REPO_URL" "$INSTALL_DIR"
 
 # 3. Setup Python Environment (Quietly)
 echo -e "${BLUE}[+] Preparing environment...${NC}"

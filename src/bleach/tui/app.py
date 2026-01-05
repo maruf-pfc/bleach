@@ -1,3 +1,5 @@
+import asyncio
+
 from textual.app import App, ComposeResult
 from textual.containers import Container, VerticalScroll
 from textual.widgets import (
@@ -252,10 +254,11 @@ class BleachApp(App):
         total = len(cleaners)
         total_freed_mb = 0.0
 
+        loop = asyncio.get_running_loop()
         for cleaner in cleaners:
             log.write(f"Running: [bold cyan]{cleaner.name}[/]...")
-            # Yield control to UI loop
-            result = cleaner.clean()
+            # Run blocking I/O in a separate thread to keep UI responsive
+            result = await loop.run_in_executor(None, cleaner.clean)
 
             if result.success:
                 msg = f"  [green]✔ OK[/]: {result.message}"
