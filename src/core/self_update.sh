@@ -3,6 +3,10 @@
 # Self Update Logic
 # Assumes Bleach is installed via Git in BLEACH_ROOT
 
+# @description Check if a newer version exists on remote
+# @noargs
+# @exitcode 0 If update is available
+# @exitcode 1 If no update or not a git repo
 check_for_updates() {
     local install_dir="$BLEACH_ROOT"
     
@@ -27,6 +31,8 @@ check_for_updates() {
     fi
 }
 
+# @description Perform the self-update (git pull)
+# @noargs
 perform_self_update() {
     local install_dir="$BLEACH_ROOT"
     cd "$install_dir" || return

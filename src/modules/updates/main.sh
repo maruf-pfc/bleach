@@ -2,10 +2,10 @@
 
 update_flatpak() {
     if command -v flatpak &>/dev/null; then
-        run_with_spinner "Updating Flatpaks..." "flatpak update -y"
+        run_verbose "Updating Flatpaks..." "flatpak update -y"
         # Also remove unused
         if gum confirm "Remove unused Flatpaks?"; then
-             run_with_spinner "Removing unused Flatpaks..." "flatpak uninstall --unused -y"
+             run_verbose "Removing unused Flatpaks..." "flatpak uninstall --unused -y"
         fi
         log_info "Flatpak updated and cleaned"
     fi
@@ -13,7 +13,7 @@ update_flatpak() {
 
 update_snap() {
     if command -v snap &>/dev/null; then
-        run_with_spinner "Refreshing Snaps..." "sudo snap refresh"
+        run_verbose "Refreshing Snaps..." "sudo snap refresh"
         log_info "Snaps refreshed"
     fi
 }

@@ -6,7 +6,7 @@ cleanup_docker() {
     fi
 
     if gum confirm "Prune unused Docker resources (images, containers, networks)?"; then
-        run_with_spinner "Pruning Docker..." "docker system prune -f"
+        run_verbose "Pruning Docker..." "docker system prune -f"
         log_info "Docker cleanup completed"
     else
         log_info "Docker cleanup skipped"

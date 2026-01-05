@@ -2,14 +2,14 @@
 
 maintenance_trim() {
     if gum confirm "Run fstrim on all mounted filesystems?"; then
-        run_with_spinner "Trimming SSDs..." "sudo fstrim -av"
+        run_verbose "Trimming SSDs..." "sudo fstrim -av"
         log_info "SSD Trim completed"
     fi
 }
 
 maintenance_rotate_logs() {
     # Placeholder for log rotation force
-    run_with_spinner "Forcing log rotation..." "sudo logrotate -f /etc/logrotate.conf"
+    run_verbose "Forcing log rotation..." "sudo logrotate -f /etc/logrotate.conf"
     log_info "Log rotation forced"
 }
 

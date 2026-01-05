@@ -4,7 +4,7 @@
 cleanup_vscode() {
     if [[ -d "${HOME}/.config/Code/Cache" ]] || [[ -d "${HOME}/.config/Code/CachedData" ]]; then
         if gum confirm "Clean VS Code Caches?"; then
-             run_with_spinner "Cleaning VS Code..." "rm -rf ~/.config/Code/Cache ~/.config/Code/CachedData 2>/dev/null"
+             run_verbose "Cleaning VS Code..." "rm -rf ~/.config/Code/Cache ~/.config/Code/CachedData 2>/dev/null"
              log_info "VS Code cache cleaned"
         fi
     else
@@ -16,7 +16,7 @@ cleanup_vscode() {
 cleanup_jetbrains() {
     if [[ -d "${HOME}/.cache/JetBrains" ]]; then
         if gum confirm "Clean JetBrains Caches?"; then
-            run_with_spinner "Cleaning JetBrains..." "rm -rf ~/.cache/JetBrains 2>/dev/null"
+            run_verbose "Cleaning JetBrains..." "rm -rf ~/.cache/JetBrains 2>/dev/null"
             log_info "JetBrains cache cleaned"
         fi
     else

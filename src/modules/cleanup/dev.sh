@@ -4,7 +4,7 @@
 cleanup_npm() {
     if command -v npm &>/dev/null; then
         if gum confirm "Clean npm cache?"; then
-            run_with_spinner "Cleaning npm cache..." "npm cache clean --force"
+            run_verbose "Cleaning npm cache..." "npm cache clean --force"
             log_info "npm cache cleaned"
         fi
     fi
@@ -14,7 +14,7 @@ cleanup_npm() {
 cleanup_pnpm() {
     if command -v pnpm &>/dev/null; then
         if gum confirm "Prune pnpm store?"; then
-            run_with_spinner "Pruning pnpm store..." "pnpm store prune"
+            run_verbose "Pruning pnpm store..." "pnpm store prune"
             log_info "pnpm store cleaned"
         fi
     fi
@@ -24,7 +24,7 @@ cleanup_pnpm() {
 cleanup_python() {
     # Basic caches
     if gum confirm "Clean Python caches (pip, poetry, virtualenv)?"; then
-        run_with_spinner "Cleaning general Python caches..." "rm -rf ~/.cache/pip ~/.cache/pypoetry ~/.cache/virtualenv"
+        run_verbose "Cleaning general Python caches..." "rm -rf ~/.cache/pip ~/.cache/pypoetry ~/.cache/virtualenv"
         log_info "General Python caches cleaned"
     fi
 
@@ -41,14 +41,14 @@ cleanup_python() {
              # Construct find command safely
              # find "$dir" -path "*/.git" -prune -o -type d -name "__pycache__" -exec rm -rf {} +
              for dir in "${scan_dirs[@]}"; do
-                 run_with_spinner "Cleaning __pycache__ in $dir..." \
+                 run_verbose "Cleaning __pycache__ in $dir..." \
                     "find '$dir' -path '*/.git' -prune -o -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null"
              done
              log_info "Deep Python cleanup completed"
         fi
     else
         if gum confirm "No standard dev dirs found. Scan entire \$HOME for __pycache__? (Slow)"; then
-             run_with_spinner "Scanning \$HOME..." \
+             run_verbose "Scanning \$HOME..." \
                 "find '$HOME' -path '*/.git' -prune -o -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null"
              log_info "Home directory Python cleanup completed"
         fi
@@ -59,7 +59,7 @@ cleanup_python() {
 cleanup_build_artifacts() {
     # Original: rm -rf ~/node_modules ~/dist ~/build
     if gum confirm "Remove common build artifacts (~/node_modules, ~/dist, ~/build)?"; then
-        run_with_spinner "Removing build artifacts..." "rm -rf ~/node_modules ~/dist ~/build 2>/dev/null"
+        run_verbose "Removing build artifacts..." "rm -rf ~/node_modules ~/dist ~/build 2>/dev/null"
         log_info "Build artifacts removed"
     fi
 }
@@ -67,7 +67,7 @@ cleanup_build_artifacts() {
 cleanup_yarn() {
     if command -v yarn &>/dev/null; then
         if gum confirm "Clean Yarn cache?"; then
-             run_with_spinner "Cleaning Yarn cache..." "yarn cache clean"
+             run_verbose "Cleaning Yarn cache..." "yarn cache clean"
              log_info "Yarn cache cleaned"
         fi
     fi

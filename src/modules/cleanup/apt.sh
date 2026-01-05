@@ -7,7 +7,7 @@ cleanup_apt() {
     fi
     
     if gum confirm "Clean APT cache and remove unused packages?"; then
-        run_with_spinner "Cleaning APT..." "sudo apt clean -y && sudo apt autoclean -y && sudo apt autoremove -y"
+        run_verbose "Cleaning APT..." "sudo apt clean -y && sudo apt autoclean -y && sudo apt autoremove -y"
         log_info "APT cleanup completed"
     else
         log_info "APT cleanup skipped"
