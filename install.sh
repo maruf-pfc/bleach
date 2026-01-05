@@ -23,8 +23,19 @@ export PATH=$PATH:/usr/local/go/bin
 if ! command -v go &>/dev/null; then
     echo "Go not found. Installing Go 1.23.2..."
     
+    # Detect Architecture
+    ARCH=$(uname -m)
+    case $ARCH in
+        x86_64)  GO_ARCH="amd64" ;;
+        aarch64) GO_ARCH="arm64" ;;
+        arm64)   GO_ARCH="arm64" ;;
+        *)       echo "Unsupported architecture: $ARCH"; exit 1 ;;
+    esac
+    
+    echo "Detected architecture: linux-$GO_ARCH"
+    
     # Download Go
-    curl -L "https://go.dev/dl/go1.23.2.linux-amd64.tar.gz" -o /tmp/go.tar.gz
+    curl -L "https://go.dev/dl/go1.23.2.linux-$GO_ARCH.tar.gz" -o /tmp/go.tar.gz
     
     # Remove old installation if exists
     rm -rf /usr/local/go
