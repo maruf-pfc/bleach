@@ -141,3 +141,9 @@ cython_debug/
 *.swo
 
 linutil
+# Go
+bleach
+*.exe
+*.test
+*.out
+go.work

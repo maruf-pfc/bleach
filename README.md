@@ -1,61 +1,69 @@
-# Bleach (Bash Edition)
+# Bleach (Go Version)
 
-Bleach is a powerful, interactive terminal utility designed to keep your Linux system clean, fast, and private. Rewritten entirely in **Bash** for maximum portability and control, it uses [gum](https://github.com/charmbracelet/gum) to provide a modern, easy-to-use interface.
+A lightning-fast, terminal-based system cleaner and dashboard for Linux, rewritten in **Go** using the **Bubble Tea** framework.
 
-## ✨ Features
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Go](https://img.shields.io/badge/go-1.23+-00ADD8.svg?logo=go&logoColor=white)
 
-- **Interactive TUI**: Navigate easy menus to select exactly what you want to clean.
-- **Deep Clean & Storage Recovery**:
-  - **System**: APT (autoremove/clean), Docker (prune), Logs (vacuum), Temp files (`/tmp`), Trash.
-  - **Dev**: Node (`npm`, `pnpm`, `yarn`), Python (deep `__pycache__` scan), Build Artifacts (`dist`, `build`).
-  - **IDE**: Clear caches for VS Code and JetBrains IDEs.
-  - **Privacy**: Clear user thumbnail caches.
-- **System Maintenance**:
-  - **SSD Trim**: Optimize SSD performance via `fstrim`.
-  - **Storage Reporting**: Tracks and reports exactly how much disk space was reclaimed after every session.
-- **Auto-Updates**:
-  - **Self-Update**: Built-in weekly check for new versions.
-  - **APT Hook**: Optional integration to check for Bleach updates whenever you run `sudo apt update`.
-- **Logging**: Detailed logs of every action kept in `~/.local/share/bleach/logs`.
+## Features
+
+-   **Unified Dashboard**: Real-time "Command Center" view with live CPU, RAM, and Disk usage bars.
+-   **System Operations**:
+    -   **Cleanup**: One-click `apt clean`, `autoremove`, and log rotation.
+    -   **Updates**: streamlining `apt update && upgrade`.
+    -   **Maintenance**: Automated system maintenance tasks.
+-   **Responsive TUI**: Adapts layout automatically (Side-by-side or Stacked) based on terminal window size.
+-   **Safe & Transparent**: Executes standard Linux commands (`sudo apt ...`) and streams output directly to you.
 
 ## 🚀 Installation
 
-### One-Line Installer
-This will install Bleach to `/opt/bleach`, create a symlink at `/usr/local/bin/bleach`, and install the `gum` dependency automatically.
+### From Source (Recommended)
 
+Requires [Go 1.23+](https://go.dev/dl/) installed.
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/maruf-pfc/bleach.git
+    cd bleach
+    ```
+2.  Build the binary:
+    ```bash
+    go build ./cmd/bleach
+    ```
+3.  Run:
+    ```bash
+    ./bleach
+    ```
+
+### Optional: Install Globally
 ```bash
-curl -fsSL https://raw.githubusercontent.com/maruf-pfc/bleach/main/install.sh | sudo bash
+sudo mv bleach /usr/local/bin/
 ```
 
-*(Note: If you are running from a local clone, just run `sudo ./install.sh`)*
+## 🎮 Usage
 
-### Prerequisites
-Bleach uses **[gum](https://github.com/charmbracelet/gum)** for its UI. The installer handles this for you on Debian/Ubuntu systems.
-
-## 🛠 Usage
-
-Run the tool anytime from your terminal:
-
+Launch Bleach from your terminal:
 ```bash
-bleach
+./bleach
 ```
 
-### Modes
-- **System Cleanup**: Quick access to disk space recovery tools.
-- **System Updates**: Centralized update management for APT, Flatpak, and Snap.
-- **Maintenance**: Utilities for long-term health (SSD Trim, etc.).
-- **View Logs**: Read what Bleach has done recently.
+### Interface
+-   **Dashboard (Top)**: Shows your System Info (Hostname, Kernel) and Live Resource Usage.
+-   **Menu (Bottom Left)**: Navigate using partially `Up` / `Down` arrows.
+-   **Output (Bottom Right)**: Displays real-time logs of actions performed.
 
-### Auto-Update
-Bleach checks for updates weekly. You can also manually trigger a check:
-```bash
-bleach --check-update
-```
+### Controls
+| Key | Action |
+| :--- | :--- |
+| `↑` / `↓` / `k` / `j` | Navigate Menu |
+| `Enter` | Select Action |
+| `q` / `Ctrl+C` | Quit |
 
-## 🤝 Contributing
+## 🛠 Tech Stack
+-   **Language**: Go (Golang)
+-   **Framework**: [Bubble Tea](https://github.com/charmbracelet/bubbletea) (The Elm Architecture for TUI)
+-   **Styling**: [Lip Gloss](https://github.com/charmbracelet/lipgloss)
+-   **System Stats**: [gopsutil](https://github.com/shirou/gopsutil)
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to add new modules or improve existing ones.
-
-## 📜 License
-
-MIT License. See [LICENSE](LICENSE) for details.
+## License
+MIT License. Use at your own risk.
