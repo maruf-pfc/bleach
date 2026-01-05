@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Generator
 from dataclasses import dataclass
 
 
@@ -35,7 +36,8 @@ class Cleaner(ABC):
         """Scan for cleanable resources without checking."""
         pass
 
+
     @abstractmethod
-    def clean(self) -> CleanupResult:
-        """Perform the cleanup operation."""
+    def clean(self) -> Generator[str, None, CleanupResult]:
+        """Perform the cleanup operation, yielding log messages."""
         pass

@@ -1,5 +1,6 @@
 import shutil
 import subprocess
+from collections.abc import Generator
 
 from bleach.core.cleaner import Cleaner, CleanupResult
 
@@ -20,21 +21,30 @@ class AptCleaner(Cleaner):
         # Checking /var/cache/apt/archives size could be a scan method
         return CleanupResult(success=True, message="APT detected.")
 
-    def clean(self) -> CleanupResult:
+    def clean(self) -> Generator[str, None, CleanupResult]:
         try:
-            # sudo apt-get clean && sudo apt-get autoremove -y
+            # apt-get clean && apt-get autoremove -y
             steps = [
-                ["sudo", "apt-get", "clean"],
-                ["sudo", "apt-get", "autoremove", "-y"],
+                (["apt-get", "clean"], "Cleaning APT cache..."),
+                (["apt-get", "autoremove", "-y"], "Removing unused packages..."),
             ]
-            for cmd in steps:
-                subprocess.run(
-                    cmd, check=True, capture_output=True
+
+            for cmd, desc in steps:
+                yield f"[bold]{desc}[/]"
+                process = subprocess.Popen(
+                    cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
                 )
+                if process.stdout:
+                    for line in process.stdout:
+                        yield f"  {line.strip()}"
+                process.wait()
+
+                if process.returncode != 0:
+                     raise subprocess.CalledProcessError(process.returncode, cmd)
 
             return CleanupResult(
                 success=True,
-                message="APT cache cleaned and unused packages removed."
+                message="APT cleanup completed."
             )
         except subprocess.CalledProcessError as e:
             return CleanupResult(
@@ -56,13 +66,21 @@ class DnfCleaner(Cleaner):
     def scan(self) -> CleanupResult:
         return CleanupResult(success=True, message="DNF detected.")
 
-    def clean(self) -> CleanupResult:
+    def clean(self) -> Generator[str, None, CleanupResult]:
         try:
-            subprocess.run(
-                ["sudo", "dnf", "clean", "all"],
-                check=True,
-                capture_output=True,
+            cmd = ["dnf", "clean", "all"]
+            yield f"[bold]Running {cmd}[/]"
+            process = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
             )
+            if process.stdout:
+                for line in process.stdout:
+                    yield f"  {line.strip()}"
+            process.wait()
+
+            if process.returncode != 0:
+                raise subprocess.CalledProcessError(process.returncode, cmd)
+
             return CleanupResult(success=True, message="DNF cache cleaned.")
         except subprocess.CalledProcessError as e:
             return CleanupResult(
@@ -84,15 +102,21 @@ class PacmanCleaner(Cleaner):
     def scan(self) -> CleanupResult:
         return CleanupResult(success=True, message="Pacman detected.")
 
-    def clean(self) -> CleanupResult:
+    def clean(self) -> Generator[str, None, CleanupResult]:
         try:
-            # pacman -Sc (Clean cache), usually requires interactive confirmation
-            # or --noconfirm logic
-            subprocess.run(
-                ["sudo", "pacman", "-Sc", "--noconfirm"],
-                check=True,
-                capture_output=True,
+            cmd = ["pacman", "-Sc", "--noconfirm"]
+            yield f"[bold]Running {cmd}[/]"
+            process = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
             )
+            if process.stdout:
+                for line in process.stdout:
+                    yield f"  {line.strip()}"
+            process.wait()
+
+            if process.returncode != 0:
+                raise subprocess.CalledProcessError(process.returncode, cmd)
+
             return CleanupResult(success=True, message="Pacman cache cleaned.")
         except subprocess.CalledProcessError as e:
             return CleanupResult(

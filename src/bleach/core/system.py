@@ -1,5 +1,6 @@
 import shutil
 import subprocess
+from collections.abc import Generator
 from pathlib import Path
 
 from bleach.core.cleaner import Cleaner, CleanupResult
@@ -35,16 +36,24 @@ class SystemLogsCleaner(Cleaner):
             message=f"Journal logs detected: {size:.2f} MB"
         )
 
-    def clean(self) -> CleanupResult:
+    def clean(self) -> Generator[str, None, CleanupResult]:
         try:
+            yield "Vacuuming journal logs > 100M or older than 2 weeks..."
             # Vacuum logs older than 2 weeks or larger than 100M
-            subprocess.run(
-                ["sudo", "journalctl", "--vacuum-size=100M", "--vacuum-time=2weeks"],
-                check=True,
-                capture_output=True
+            process = subprocess.Popen(
+                ["journalctl", "--vacuum-size=100M", "--vacuum-time=2weeks"],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
             )
+            if process.stdout:
+                for line in process.stdout:
+                    yield f"  {line.strip()}"
+            process.wait()
+
+            if process.returncode != 0:
+                raise subprocess.CalledProcessError(process.returncode, process.args)
+
             return CleanupResult(
-                success=True, message="System logs vacuumed successfully."
+                success=True, message="System logs vacuumed."
             )
         except subprocess.CalledProcessError as e:
             return CleanupResult(
@@ -68,10 +77,9 @@ class CacheCleaner(Cleaner):
         # Just a dummy scan for now or implement specific folder sizing
         return CleanupResult(success=True, message="Checking generic caches...")
 
-    def clean(self) -> CleanupResult:
+    def clean(self) -> Generator[str, None, CleanupResult]:
         cleaned_mb = 0.0
-        # Example: Clear standardized cache locations if safe
-        # NOTE: Be very careful here. For now let's just do a safe subset.
+        yield "Scanning for generic caches..."
 
         # Safe targets: thumbnails
         targets = [
@@ -80,13 +88,12 @@ class CacheCleaner(Cleaner):
 
         for target in targets:
             if target.exists():
-                # Simple logic to remove content
-                # In real imp, calculate size before delete
+                yield f"  Removing {target}..."
                 try:
                     shutil.rmtree(target)
                     cleaned_mb += 1.0 # placeholder
-                except Exception:
-                    pass
+                except Exception as e:
+                    yield f"  [red]Failed to remove {target}: {e}[/]"
 
         return CleanupResult(
             success=True,

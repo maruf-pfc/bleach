@@ -1,5 +1,6 @@
 import shutil
 import subprocess
+from collections.abc import Generator
 from pathlib import Path
 
 from bleach.core.cleaner import Cleaner, CleanupResult
@@ -20,14 +21,21 @@ class DockerCleaner(Cleaner):
     def scan(self) -> CleanupResult:
         return CleanupResult(success=True, message="Docker detected.")
 
-    def clean(self) -> CleanupResult:
+    def clean(self) -> Generator[str, None, CleanupResult]:
         try:
-            # docker system prune -f
-            subprocess.run(
-                ["docker", "system", "prune", "-f"],
-                check=True,
-                capture_output=True
+            cmd = ["docker", "system", "prune", "-f"]
+            yield "Pruning Docker resources..."
+            process = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
             )
+            if process.stdout:
+                for line in process.stdout:
+                    yield f"  {line.strip()}"
+            process.wait()
+
+            if process.returncode != 0:
+                raise subprocess.CalledProcessError(process.returncode, cmd)
+
             return CleanupResult(success=True, message="Docker resources pruned.")
         except subprocess.CalledProcessError as e:
             return CleanupResult(
@@ -49,13 +57,21 @@ class NpmCleaner(Cleaner):
     def scan(self) -> CleanupResult:
         return CleanupResult(success=True, message="NPM detected.")
 
-    def clean(self) -> CleanupResult:
+    def clean(self) -> Generator[str, None, CleanupResult]:
         try:
-            subprocess.run(
-                ["npm", "cache", "clean", "--force"],
-                check=True,
-                capture_output=True
+            cmd = ["npm", "cache", "clean", "--force"]
+            yield "Cleaning NPM cache..."
+            process = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
             )
+            if process.stdout:
+                for line in process.stdout:
+                    yield f"  {line.strip()}"
+            process.wait()
+
+            if process.returncode != 0:
+                raise subprocess.CalledProcessError(process.returncode, cmd)
+
             return CleanupResult(success=True, message="NPM cache cleaned.")
         except subprocess.CalledProcessError as e:
             return CleanupResult(
@@ -88,9 +104,10 @@ class PipCleaner(Cleaner):
             message=f"Pip cache: {size:.2f} MB"
         )
 
-    def clean(self) -> CleanupResult:
+    def clean(self) -> Generator[str, None, CleanupResult]:
         path = Path.home() / ".cache/pip"
         if path.exists():
+            yield f"Removing Pip cache at {path}..."
             try:
                 shutil.rmtree(path)
                 return CleanupResult(success=True, message="Pip cache removed.")

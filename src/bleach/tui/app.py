@@ -1,4 +1,3 @@
-import asyncio
 
 from textual.app import App, ComposeResult
 from textual.containers import Container, VerticalScroll
@@ -24,24 +23,25 @@ class BleachApp(App):
         layout: grid;
         grid-size: 2;
         grid-columns: 35% 1fr;
-        background: #1e1e1e;
+        background: #111111;
     }
 
     /* Sidebar Styling */
     #sidebar {
-        background: #252526;
+        background: #1e1e1e;
         border-right: solid #333333;
         height: 100%;
-        dock: left;
         layout: vertical;
+        scrollbar-gutter: stable;
     }
 
     #sidebar_header {
-        background: #3c3c3c;
-        color: white;
+        background: #252526;
+        color: #eeeeee;
         text-align: center;
         padding: 1;
         text-style: bold;
+        border-bottom: solid #333333;
     }
 
     .cleaner-list {
@@ -50,32 +50,41 @@ class BleachApp(App):
     }
 
     Checkbox {
-        padding: 0 1;
+        padding: 1;
         margin: 0;
-        color: #cccccc;
+        color: #888888;
+        border: none;
     }
 
     Checkbox:hover {
         background: #2a2d2e;
-        color: white;
+        color: #ffffff;
+    }
+
+    Checkbox.-on {
+        color: #ffffff;
+        text-style: bold;
     }
 
     /* Controls Area */
     #controls {
         height: auto;
-        padding: 1;
+        padding: 1 2;
         border-top: solid #333333;
-        background: #252526;
+        background: #1e1e1e;
     }
 
     Button {
         width: 100%;
         margin-bottom: 1;
+        height: 3;
+        border: none;
     }
 
     #btn_run {
         background: #007acc;
         color: white;
+        text-style: bold;
     }
 
     #btn_run:hover {
@@ -83,43 +92,49 @@ class BleachApp(App):
     }
 
     .secondary-btn {
-        background: #3e3e42;
+        background: #333333;
         color: #cccccc;
+        height: 1;
+        margin-bottom: 0;
+        border: none;
     }
 
     .secondary-btn:hover {
-        background: #4e4e52;
+        background: #444444;
         color: white;
     }
 
     /* Main Content */
     #main_content {
         height: 100%;
-        background: #1e1e1e;
+        background: #111111;
         layout: vertical;
         padding: 0;
     }
 
     #log_header {
-        background: #333333;
-        color: white;
+        background: #252526;
+        color: #eeeeee;
         padding: 1;
         text-style: bold;
+        border-bottom: solid #333333;
     }
 
     RichLog {
-        background: #1e1e1e;
+        background: #0d0d0d;
         color: #d4d4d4;
-        padding: 1;
+        padding: 1 2;
         height: 1fr;
-        scrollbar-background: #1e1e1e;
-        scrollbar-color: #424242;
+        scrollbar-background: #0d0d0d;
+        scrollbar-color: #333333;
+        border: none;
     }
 
     LoadingIndicator {
         height: 100%;
         content-align: center middle;
         display: none;
+        color: #007acc;
     }
 
     .processing LoadingIndicator {
@@ -222,6 +237,7 @@ class BleachApp(App):
         for checkbox in self.query(Checkbox):
             checkbox.value = False
 
+
     def action_run_cleanup(self) -> None:
         log = self.query_one(RichLog)
 
@@ -234,60 +250,74 @@ class BleachApp(App):
                 to_run.append(cleaner)
 
         if not to_run:
-            log.write(
-                "[bold yellow][!] No tasks selected. "
-                "Please select at least one task.[/]"
-            )
+            log.write("[bold yellow][!] No tasks selected.[/]")
             return
 
         # Start loading stats
         self.query_one("#main_content").add_class("processing")
         self.query_one(RichLog).display = False
 
-        self.run_worker(self._perform_cleanup(to_run, log))
+        # Launch thread
+        self.run_worker(lambda: self._cleanup_worker(to_run, log), thread=True)
 
-    async def _perform_cleanup(self, cleaners: list[Cleaner], log: RichLog) -> None:
-        log.clear()
-        log.write(f"[bold]Starting cleanup of {len(cleaners)} tasks...[/]\n")
+    def _cleanup_worker(self, cleaners: list[Cleaner], log: RichLog) -> None:
+        self.call_from_thread(log.clear)
+        self.call_from_thread(
+            log.write, f"[bold]Starting cleanup of {len(cleaners)} tasks...[/]\n"
+        )
 
         success_count = 0
-        total = len(cleaners)
         total_freed_mb = 0.0
 
-        loop = asyncio.get_running_loop()
         for cleaner in cleaners:
-            log.write(f"Running: [bold cyan]{cleaner.name}[/]...")
-            # Run blocking I/O in a separate thread to keep UI responsive
-            result = await loop.run_in_executor(None, cleaner.clean)
+            self.call_from_thread(
+                log.write, f"Running: [bold cyan]{cleaner.name}[/]..."
+            )
 
-            if result.success:
-                msg = f"  [green]✔ OK[/]: {result.message}"
+            gen = cleaner.clean()
+            result = None
+            try:
+                while True:
+                    msg = next(gen)
+                    self.call_from_thread(log.write, f"  {msg}")
+            except StopIteration as e:
+                result = e.value
+            except Exception as e:
+                self.call_from_thread(log.write, f"  [bold red]ERROR[/]: {e}")
+                continue
+
+            if result and result.success:
+                msg = f"  [green]✔ DONE[/]: {result.message}"
                 if result.cleaned_size_mb > 0:
                     msg += f" [bold green](Freed {result.cleaned_size_mb:.2f} MB)[/]"
                     total_freed_mb += result.cleaned_size_mb
-                log.write(msg)
+                self.call_from_thread(log.write, msg)
                 success_count += 1
-            else:
-                log.write(f"  [bold red]✘ FAIL[/]: {result.message}")
+            elif result:
+                self.call_from_thread(
+                    log.write, f"  [bold red]✘ FAIL[/]: {result.message}"
+                )
                 if result.details:
-                    log.write(f"    [red]{result.details}[/]")
+                    self.call_from_thread(log.write, f"    [red]{result.details}[/]")
 
-            log.write("")  # Spacer
+            self.call_from_thread(log.write, "")  # Spacer
 
-        log.write("[bold white]" + "-" * 50 + "[/]")
-        summary = f"[bold]Cleanup Complete.[/] ({success_count}/{total} successful)"
+        self.call_from_thread(log.write, "[bold white]" + "-" * 50 + "[/]")
+        summary = f"[bold]Complete.[/] ({success_count}/{len(cleaners)} successful)"
         if total_freed_mb > 0:
             summary += (
                 f"\n[bold green]Total Space Recovered: {total_freed_mb:.2f} MB[/]"
             )
-        log.write(summary)
+        self.call_from_thread(log.write, summary)
 
-        # Stop loading
-        self.query_one("#main_content").remove_class("processing")
-        self.query_one(RichLog).display = True
+        def stop_loading() -> None:
+            self.query_one("#main_content").remove_class("processing")
+            self.query_one(RichLog).display = True
+
+        self.call_from_thread(stop_loading)
 
     def action_toggle_dark(self) -> None:
-        self.theme = "bleach" if self.theme == "default" else "default"
+        self.dark = not self.dark  # type: ignore
 
 if __name__ == "__main__":
     import os
@@ -302,10 +332,7 @@ if __name__ == "__main__":
             print("Please install sudo or run as root.")
             sys.exit(1)
 
-        print("Bleach requires root privileges to clean system files.")
-        print("Restarting with sudo...")
-
-        # Replace current process with sudo
+        # Re-launch with sudo; minimal output to avoid breaking TUI
         # usage: sudo python3 script.py [args]
         args = ["sudo", sys.executable] + sys.argv
         os.execvp("sudo", args)
