@@ -21,7 +21,15 @@ Unlike aggressive cleaning tools, Bleach respects your development environmentâ€
 
 ## ðŸ“¦ Installation
 
-### Option 1: Debian/Ubuntu (.deb)
+### Option 1: One-Line Installer (Recommended)
+
+Quickly install and setup Bleach with a single command:
+
+```bash
+curl -sL https://raw.githubusercontent.com/maruf-pfc/bleach/main/install.sh | bash
+```
+
+### Option 2: Debian/Ubuntu (.deb)
 
 Download the latest release from the [Releases Page](https://github.com/maruf-pfc/bleach/releases).
 
