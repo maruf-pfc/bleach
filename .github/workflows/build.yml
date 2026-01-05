@@ -41,7 +41,7 @@ jobs:
         ./build_deb.sh
         
     - name: Upload .deb Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: bleach-package
         path: build/*.deb
