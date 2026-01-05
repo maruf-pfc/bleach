@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-# Bleach Installer
-# Installs/Updates Bleach to /opt/bleach and sets up update hooks
+# Bleach Installer (Go Version)
+# Installs/Updates Bleach to /opt/bleach by building from source
 
 set -e
 
-REPO_URL="https://github.com/maruf-pfc/bleach.git" # Official Repo
+REPO_URL="https://github.com/maruf-pfc/bleach.git"
 INSTALL_DIR="/opt/bleach"
 BIN_LINK="/usr/local/bin/bleach"
 
@@ -15,58 +15,54 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-echo "Installing Bleach..."
+echo "Installing Bleach v1.0.0..."
 
-# 1. Install Dependencies (gum)
-if ! command -v gum &>/dev/null; then
-    echo "Installing dependency: gum..."
-    mkdir -p /etc/apt/keyrings
-    curl -fsSL https://repo.charm.sh/apt/gpg.key | gpg --dearmor -o /etc/apt/keyrings/charm.gpg
-    echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | tee /etc/apt/sources.list.d/charm.list
-    apt update && apt install gum -y
+# 1. Check for Go
+# Add standard Go path just in case sudo reset it
+export PATH=$PATH:/usr/local/go/bin
+
+if ! command -v go &>/dev/null; then
+    echo "Error: 'go' command not found."
+    echo "Tips:"
+    echo "  1. If Go is installed in your home directory, run this script with: sudo -E ./install.sh"
+    echo "  2. Or install Go globally: https://go.dev/doc/install"
+    exit 1
 fi
 
 # 2. Clean Install / Update
 if [[ -d "$INSTALL_DIR" ]]; then
     echo "Removing old version at $INSTALL_DIR..."
     rm -rf "$INSTALL_DIR"
-    # Or git pull? Cleaner to re-clone to ensure pristine state
 fi
 
-echo "Cloning repository..."
-# In a real one-line installer, this would clone. 
-# For this dev environment, we assume the current directory IS the source.
-# So we copy instead of clone if we are running from source.
-if [[ -d "src" && -f "bleach" ]]; then
+# 3. Clone/Copy Source
+echo "Setting up source..."
+if [[ -d "cmd" && -f "go.mod" ]]; then
+    # Installing from current directory
     echo "Installing from local source..."
     mkdir -p "$INSTALL_DIR"
     cp -r ./* "$INSTALL_DIR/"
 else
-    # Fallback to clone
-    # GIT_TERMINAL_PROMPT=0 prevents hanging on password prompt if repo is missing/private
-    # --depth 1 makes it a shallow clone (faster download)
+    # Cloning from remote
+    echo "Cloning repository..."
     GIT_TERMINAL_PROMPT=0 git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
 fi
 
-# 3. Permissions & Symlink
+# 4. Build Binary
+echo "Building Bleach binary..."
+cd "$INSTALL_DIR"
+# Ensure dependencies
+export GOCACHE="/tmp/go-build-cache" # Use temp cache for root build
+go mod tidy
+go build -o bleach ./cmd/bleach
+
+# 5. Permissions & Symlink
 chmod +x "$INSTALL_DIR/bleach"
-chmod +x "$INSTALL_DIR/src/core/"*.sh
-chmod +x "$INSTALL_DIR/src/modules/"*/*.sh # Recursive?
 
 echo "Creating symlink at $BIN_LINK..."
 ln -sf "$INSTALL_DIR/bleach" "$BIN_LINK"
 
-# 4. APT Hook Setup
-if [[ -d "/etc/apt/apt.conf.d" ]]; then
-    # Default to YES for auto-update if silent, or valid functionality
-    echo "Setting up APT auto-update hook..."
-    cat > /etc/apt/apt.conf.d/99bleach <<EOF
-APT::Update::Pre-Invoke {"$BIN_LINK --check-update || true";};
-EOF
-    echo "APT hook installed at /etc/apt/apt.conf.d/99bleach"
-fi
-
 echo "========================================"
-echo "Bleach installed successfully!"
+echo "Bleach v1.0.0 installed successfully!"
 echo "Run 'bleach' to start."
 echo "========================================"
