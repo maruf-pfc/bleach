@@ -1,109 +1,67 @@
-# Bleach
+# Bleach (Bash Edition)
 
-**A safe, cross-platform terminal-based system cleaner.**
+> **Automated System Cleanup & Maintenance Tool for Linux**
+> _Inspired by [ChrisTitusTech/linutil](https://github.com/ChrisTitusTech/linutil)_
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
+Bleach is a powerful, interactive terminal utility designed to keep your Linux system clean, fast, and private. Rewritten entirely in **Bash** for maximum portability and control, it uses [gum](https://github.com/charmbracelet/gum) to provide a modern, easy-to-use interface.
 
-**Bleach** is a modern system maintenance tool designed for developers. It helps you keep your Linux environment fast and clean by removing unused caches, logs, and temporary files safely.
-
-Unlike aggressive cleaning tools, Bleach respects your development environment—it never touches `.git` folders, source code, or active databases.
+![Demo](https://charm.sh/m/gum/demo.gif)
+*(Example of the Gum interface used in Bleach)*
 
 ## ✨ Features
 
-- **🖥️ Modern TUI**: built with [Textual](https://textual.textualize.io/) for a beautiful, interactive terminal experience.
-- **🛡️ Safe by Default**: Explicitly ignores `.git` directories and critical system files.
-- **🐧 Cross-Distro**: Smartly detects your package manager (APT, DNF, Pacman, etc.).
-- **🧹 Deep Cleaning**:
-  - **System**: Journal logs, temporary files, thumbnails.
-  - **Dev Tools**: Docker (unused images/containers), NPM cache, Pip cache.
-  - **Package Managers**: Clean APT/DNF/Pacman caches and autoremove unused packages.
+- **Interactive TUI**: Navigate easy menus to select exactly what you want to clean.
+- **Deep Clean & Storage Recovery**:
+  - **System**: APT (autoremove/clean), Docker (prune), Logs (vacuum), Temp files (`/tmp`), Trash.
+  - **Dev**: Node (`npm`, `pnpm`, `yarn`), Python (deep `__pycache__` scan), Build Artifacts (`dist`, `build`).
+  - **IDE**: Clear caches for VS Code and JetBrains IDEs.
+  - **Privacy**: Clear user thumbnail caches.
+- **System Maintenance**:
+  - **SSD Trim**: Optimize SSD performance via `fstrim`.
+  - **Storage Reporting**: Tracks and reports exactly how much disk space was reclaimed after every session.
+- **Auto-Updates**:
+  - **Self-Update**: Built-in weekly check for new versions.
+  - **APT Hook**: Optional integration to check for Bleach updates whenever you run `sudo apt update`.
+- **Logging**: Detailed logs of every action kept in `~/.local/share/bleach/logs`.
 
-## 📦 Installation
+## 🚀 Installation
 
-### Option 1: One-Line Installer (Recommended)
-
-Quickly install and setup Bleach with a single command:
-
-```bash
-curl -sL https://raw.githubusercontent.com/maruf-pfc/bleach/main/install.sh | bash
-```
-
-### Option 2: Debian/Ubuntu (.deb)
-
-Download the latest release from the [Releases Page](https://github.com/maruf-pfc/bleach/releases).
+### One-Line Installer
+This will install Bleach to `/opt/bleach`, create a symlink at `/usr/local/bin/bleach`, and install the `gum` dependency automatically.
 
 ```bash
-sudo dpkg -i bleach_*.deb
-sudo apt-get install -f  # Fix dependencies if needed
+curl -fsSL https://raw.githubusercontent.com/yourusername/bleach/main/install.sh | sudo bash
 ```
 
-### Option 2: Python (Universal)
+*(Note: If you are running from a local clone, just run `sudo ./install.sh`)*
 
-Install directly from the repository using `pip` (requires Python 3.8+):
+### Prerequisites
+Bleach uses **[gum](https://github.com/charmbracelet/gum)** for its UI. The installer handles this for you on Debian/Ubuntu systems.
 
-```bash
-pip install git+https://github.com/maruf-pfc/bleach.git
-```
+## 🛠 Usage
 
-### Option 3: Build from Source
-
-If you want to build the `.deb` package yourself:
-
-```bash
-git clone https://github.com/maruf-pfc/bleach.git
-cd bleach
-./build_deb.sh
-sudo dpkg -i build/bleach_0.1.0_all.deb
-```
-
-## 🚀 Usage
-
-Simply run `bleach` in your terminal:
+Run the tool anytime from your terminal:
 
 ```bash
 bleach
 ```
 
-- Navigate using **Arrow Keys** or **Mouse**.
-- Toggle items with **Space** or **Click**.
-- Run cleanup by clicking **"Run Cleanup"**.
+### Modes
+- **System Cleanup**: Quick access to disk space recovery tools.
+- **System Updates**: Centralized update management for APT, Flatpak, and Snap.
+- **Maintenance**: Utilities for long-term health (SSD Trim, etc.).
+- **View Logs**: Read what Bleach has done recently.
 
-### CLI Options
-
+### Auto-Update
+Bleach checks for updates weekly. You can also manually trigger a check:
 ```bash
-bleach --version   # Show version
-bleach --help      # Show help message
+bleach --check-update
 ```
 
-## 🛠️ Development
+## 🤝 Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to add new modules or improve existing ones.
 
-1. **Clone the repo**
-   ```bash
-   git clone https://github.com/maruf-pfc/bleach.git
-   cd bleach
-   ```
+## 📜 License
 
-2. **Install dev dependencies**
-   ```bash
-   pip install -e ".[dev]"
-   ```
-
-3. **Run Linting & Tests**
-   ```bash
-   ruff check .
-   mypy .
-   pytest
-   ```
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-<p align="center">
-  Made with ❤️ by <a href="https://github.com/maruf-pfc">Md. Maruf Sarker</a>
-</p>
+MIT License. See [LICENSE](LICENSE) for details.
