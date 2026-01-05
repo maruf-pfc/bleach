@@ -1,12 +1,6 @@
 # Bleach (Bash Edition)
 
-> **Automated System Cleanup & Maintenance Tool for Linux**
-> _Inspired by [ChrisTitusTech/linutil](https://github.com/ChrisTitusTech/linutil)_
-
 Bleach is a powerful, interactive terminal utility designed to keep your Linux system clean, fast, and private. Rewritten entirely in **Bash** for maximum portability and control, it uses [gum](https://github.com/charmbracelet/gum) to provide a modern, easy-to-use interface.
-
-![Demo](https://charm.sh/m/gum/demo.gif)
-*(Example of the Gum interface used in Bleach)*
 
 ## ✨ Features
 
@@ -30,7 +24,7 @@ Bleach is a powerful, interactive terminal utility designed to keep your Linux s
 This will install Bleach to `/opt/bleach`, create a symlink at `/usr/local/bin/bleach`, and install the `gum` dependency automatically.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yourusername/bleach/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/maruf-pfc/bleach/main/install.sh | sudo bash
 ```
 
 *(Note: If you are running from a local clone, just run `sudo ./install.sh`)*
