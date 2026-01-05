@@ -1,36 +1,37 @@
 #!/usr/bin/env bash
 
 # Colors
-COLOR_PRIMARY="99"   # Purpleish
-COLOR_SECONDARY="212" # Pinkish
-COLOR_ACCENT="50"    # Cyan/Teal
-COLOR_MUTED="240"    # Grey
+export COLOR_PRIMARY="99"   # Purpleish
+export COLOR_SECONDARY="212" # Pinkish
+export COLOR_ACCENT="50"    # Cyan/Teal
+export COLOR_MUTED="240"    # Grey
 
 # Layout Constants
-SIDEBAR_WIDTH=25
+export SIDEBAR_WIDTH=25
 
 # @description Draw the Tabbed Header
 # @arg $1 active_tab Name of the active tab (cleanup|updates|maintenance|info)
 draw_header() {
     local active_tab=$1
-    local tab_cleanup="Cleanup"
+    
+    # Responsive width check
+    local label_cleanup="Cleanup"
+    if [[ $(tput cols) -lt 80 ]]; then
+        label_cleanup="Clean"
+    fi
+
+    local tab_cleanup="$label_cleanup"
     local tab_updates="Updates menu"
     local tab_maint="Maintenance"
     local tab_info="Stats"
     
     # Highlight active
     case $active_tab in
-        "cleanup") tab_cleanup=$(gum style --foreground "$COLOR_SECONDARY" --bold " [ Cleanup ] ") ;;
+        "cleanup") tab_cleanup=$(gum style --foreground "$COLOR_SECONDARY" --bold " [ $label_cleanup ] ") ;;
         "updates") tab_updates=$(gum style --foreground "$COLOR_SECONDARY" --bold " [ Updates ] ") ;;
         "maintenance") tab_maint=$(gum style --foreground "$COLOR_SECONDARY" --bold " [ Maintenance ] ") ;;
         "info") tab_info=$(gum style --foreground "$COLOR_SECONDARY" --bold " [ Stats ] ") ;;
     esac
-
-    # Responsive width check
-    local clean_label="System Cleanup"
-    if [[ $(tput cols) -lt 80 ]]; then
-        clean_label="Clean"
-    fi
 
     local header_text
     header_text=$(gum join --horizontal "  $tab_cleanup" "  $tab_updates" "  $tab_maint" "  $tab_info")

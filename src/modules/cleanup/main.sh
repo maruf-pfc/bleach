@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
 
 # Source sibling scripts
+# shellcheck disable=SC1091
 source "${MODULES_DIR}/cleanup/apt.sh"
+# shellcheck disable=SC1091
 source "${MODULES_DIR}/cleanup/docker.sh"
+# shellcheck disable=SC1091
 source "${MODULES_DIR}/cleanup/logs.sh"
+# shellcheck disable=SC1091
 source "${MODULES_DIR}/cleanup/ide.sh"
+# shellcheck disable=SC1091
 source "${MODULES_DIR}/cleanup/dev.sh"
+# shellcheck disable=SC1091
 source "${MODULES_DIR}/cleanup/system.sh"
 
 run_cleanup_menu() {

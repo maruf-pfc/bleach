@@ -22,7 +22,7 @@ check_for_updates() {
     local LOCAL
     local REMOTE
     LOCAL=$(git rev-parse HEAD)
-    REMOTE=$(git rev-parse @{u})
+    REMOTE=$(git rev-parse "@{u}")
 
     if [[ "$LOCAL" != "$REMOTE" ]]; then
         return 0 # Update available
