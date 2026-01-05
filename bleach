@@ -1,0 +1,173 @@
+#!/usr/bin/env bash
+# Bleach - System Cleanup & Maintenance Tool
+# Rewritten in Bash with a Linutil-inspired UI
+
+set -Eeuo pipefail
+
+# ---------------- CONFIGURATION ----------------
+export BLEACH_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export SRC_DIR="${BLEACH_ROOT}/src"
+export CORE_DIR="${SRC_DIR}/core"
+export MODULES_DIR="${SRC_DIR}/modules"
+
+# ---------------- IMPORTS ----------------
+source "${CORE_DIR}/tui.sh"
+source "${CORE_DIR}/logging.sh"
+source "${CORE_DIR}/state.sh"
+source "${CORE_DIR}/self_update.sh"
+
+# ---------------- MAIN ----------------
+main() {
+    # Argument Parsing
+    for arg in "$@"; do
+        case $arg in
+            --check-update)
+                # Used by APT Hook or Cron
+                if check_for_updates; then
+                    perform_self_update
+                fi
+                exit 0
+                ;;
+            --help)
+                echo "Usage: bleach [options]"
+                echo "  --check-update   Check and apply updates (non-interactive)"
+                exit 0
+                ;;
+        esac
+    done
+
+    # ---------------- SUDO (ASK ONCE) ----------------
+    if command -v sudo &>/dev/null; then
+        sudo -v
+        # Keep-alive: update existing sudo time stamp until finished
+        while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+    fi
+
+    # Check dependencies
+    if ! command -v gum &>/dev/null; then
+        echo "Dependency 'gum' is missing."
+        echo "It is required for the TUI."
+        # Simple auto-install attempt for Debian/Ubuntu (since project targeted apt based)
+        if command -v apt &>/dev/null; then
+             echo "Attempting to install gum..."
+             sudo mkdir -p /etc/apt/keyrings
+             curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+             echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
+             sudo apt update && sudo apt install gum -y
+        else
+             echo "Please install gum manually: https://github.com/charmbracelet/gum"
+             exit 1
+        fi
+    fi
+    
+    # Weekly Auto-Update Check (Interactive)
+    # Check timestamp file
+    local last_check_file="${HOME}/.local/share/bleach/last_update_check"
+    local current_time=$(date +%s)
+    local last_check=0
+    
+    if [[ -f "$last_check_file" ]]; then
+        last_check=$(cat "$last_check_file")
+    fi
+    
+    # week in seconds = 604800
+    if (( current_time - last_check > 604800 )); then
+         if check_for_updates; then
+             if gum confirm "New version of Bleach available. Update now?"; then
+                 perform_self_update
+                 # Reload script
+                 exec "$0" "$@"
+             fi
+         fi
+         mkdir -p "$(dirname "$last_check_file")"
+         echo "$current_time" > "$last_check_file"
+    fi
+
+    # Initialize Logger
+    init_logger
+    
+    # Capture Start Storage
+    START_SPACE=$(get_free_space)
+
+    # Main Loop
+    while true; do
+        draw_header
+        
+        # storage info
+        CURRENT_SPACE=$(get_free_space)
+        FREED=$(( CURRENT_SPACE - START_SPACE ))
+        if (( FREED < 0 )); then FREED=0; fi # Just in case
+        
+        if (( FREED > 0 )); then
+            FREED_HR=$(human_readable_size "$FREED")
+            gum style --foreground 212 "Session Reclaimed: $FREED_HR"
+        fi
+
+        # Main Menu Selection
+        # Single selection for navigation (Enter to select)
+        SELECTION=$(gum choose --cursor="→ " --header="Select Maintenance Category (Enter to select)" \
+            "System Cleanup" \
+            "System Updates" \
+            "Maintenance" \
+            "Gaming Tweaks" \
+            "View Logs" \
+            "Exit")
+
+        # Handle Empty Selection (User just hit Enter without selecting)
+        if [[ -z "$SELECTION" ]]; then
+             continue
+        fi
+
+        # Process Selection
+        # Note: gum choose returns newline separated list of selected items
+        while IFS= read -r item; do
+            case "$item" in
+                "System Cleanup")   run_module_menu "cleanup" ;;
+                "System Updates")   run_module_menu "updates" ;;
+                "Maintenance")      run_module_menu "maintenance" ;;
+                "Gaming Tweaks")    run_module_menu "gaming" ;;
+                "View Logs")        view_logs ;;
+                "Exit")             
+                    END_SPACE=$(get_free_space)
+                    DIFF=$(( END_SPACE - START_SPACE ))
+                    if (( DIFF > 0 )); then
+                        DIFF_HR=$(human_readable_size "$DIFF")
+                        clear
+                        gum style --border double --margin 1 --padding 1 --foreground 212 "Bleach Finished!" "You reclaimed $DIFF_HR of disk space."
+                    else
+                         clear
+                         gum style --border normal --margin 1 --padding 1 "Bleach Finished."
+                    fi
+                    exit 0 
+                    ;;
+            esac
+        done <<< "$SELECTION"
+        
+        # Pause before return happens inside modules usually, but loop restart clears screen
+    done
+}
+
+# ---------------- MODULE RUNNER ----------------
+run_module_menu() {
+    local category=$1
+    case "$category" in
+        "cleanup")
+            source "${MODULES_DIR}/cleanup/main.sh"
+            run_cleanup_menu
+            ;;
+        "updates")
+            source "${MODULES_DIR}/updates/main.sh"
+            run_updates_menu
+            ;;
+        "maintenance")
+            source "${MODULES_DIR}/maintenance/main.sh"
+            run_maintenance_menu
+            ;;
+        "gaming")
+            source "${MODULES_DIR}/gaming/main.sh"
+            run_gaming_menu
+            ;;
+    esac
+}
+
+main "$@"
