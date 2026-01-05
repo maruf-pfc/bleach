@@ -52,6 +52,6 @@ exec "$INSTALL_DIR/venv/bin/bleach" "\$@"
 EOF
 chmod +x "$LAUNCHER"
 
-# 5. Run Immediately (Linutil style)
+# 5. Run Immediately
 echo -e "${GREEN}[+] Launching Bleach...${NC}"
 exec "$LAUNCHER"
