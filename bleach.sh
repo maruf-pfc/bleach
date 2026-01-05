@@ -4,9 +4,9 @@
 # Bleach
 # Personal Auto Cleanup Tool for Developers
 #
-# Author : Md. Maruf Sarker
+# Author : Md. Maruf Sarker | Niloy Bhowmick
 # License: MIT
-# OS     : Pop!_OS / Ubuntu / Debian
+# OS     : Any Distro based on Debian (APT Package Manager)
 #
 # Purpose:
 #   Keep a developer machine fast, clean, and predictable

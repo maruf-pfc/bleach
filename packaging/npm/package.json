@@ -1,0 +1,28 @@
+{
+  "name": "bleach-tui",
+  "version": "0.1.0",
+  "description": "A safe, cross-platform terminal-based system cleaner.",
+  "bin": {
+    "bleach": "./bin/bleach"
+  },
+  "scripts": {
+    "install": "pip install bleach-tui",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maruf-pfc/bleach.git"
+  },
+  "keywords": [
+    "system",
+    "cleaner",
+    "tui",
+    "linux"
+  ],
+  "author": "Md. Maruf Sarker",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/maruf-pfc/bleach/issues"
+  },
+  "homepage": "https://github.com/maruf-pfc/bleach#readme"
+}
