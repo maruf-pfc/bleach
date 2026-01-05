@@ -5,7 +5,7 @@
 
 set -e
 
-REPO_URL="https://github.com/yourusername/bleach.git" # Replace with actual URL logic in real usage, utilizing local path for now if needed or placeholder
+REPO_URL="https://github.com/maruf-pfc/bleach.git" # Official Repo
 INSTALL_DIR="/opt/bleach"
 BIN_LINK="/usr/local/bin/bleach"
 
@@ -43,7 +43,9 @@ if [[ -d "src" && -f "bleach" ]]; then
     cp -r ./* "$INSTALL_DIR/"
 else
     # Fallback to clone
-    git clone "$REPO_URL" "$INSTALL_DIR"
+    # GIT_TERMINAL_PROMPT=0 prevents hanging on password prompt if repo is missing/private
+    # --depth 1 makes it a shallow clone (faster download)
+    GIT_TERMINAL_PROMPT=0 git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
 fi
 
 # 3. Permissions & Symlink
