@@ -21,8 +21,10 @@ type Model struct {
 func NewModel() Model {
 	return Model{
 		Items: []Item{
-			{Title: "System Cleanup"},
+			{Title: "Quick Clean (System)"},
+			{Title: "Deep Clean (Dev + Sys)"},
 			{Title: "System Updates"},
+			{Title: "Fix APT Locks"},
 			{Title: "Maintenance"},
 			{Title: "View Logs"},
 			{Title: "Exit"},
@@ -62,9 +64,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) View() string {
 	var s string
 	
-	// Title
-	s += styles.Label.Render("  :: ACTIONS ::") + "\n"
-
+	// Just render items, no extra border/padding
 	for i, item := range m.Items {
 		cursor := "  " // 2 spaces
 		title := item.Title
@@ -79,5 +79,5 @@ func (m Model) View() string {
 		s += fmt.Sprintf("%s%s\n", cursor, title)
 	}
 
-	return styles.Panel.Width(m.Width).Render(s)
+	return s
 }

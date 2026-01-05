@@ -15,15 +15,27 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-echo "Installing Bleach v1.0.0..."
+echo "Installing Bleach v1.0.1..."
 
 # 1. Check for Go
 export PATH=$PATH:/usr/local/go/bin
 
-if ! command -v go &>/dev/null; then
-    echo "Go not found. Installing Go 1.23.2..."
+NEED_GO=true
+
+if command -v go &>/dev/null; then
+    GO_VERSION=$(go version | awk '{print $3}' | tr -d "go")
+    # Simple check for 1.23
+    if [[ "$(printf '%s\n' "1.23" "$GO_VERSION" | sort -V | head -n1)" == "1.23" ]]; then
+        echo "Found Go $GO_VERSION (>= 1.23). Skipping installation."
+        NEED_GO=false
+    else
+        echo "Found Go $GO_VERSION, but need >= 1.23."
+    fi
+fi
+
+if [ "$NEED_GO" = true ]; then
+    echo "Installing Go 1.23.2..."
     
-    # Detect Architecture
     ARCH=$(uname -m)
     case $ARCH in
         x86_64)  GO_ARCH="amd64" ;;
@@ -34,19 +46,11 @@ if ! command -v go &>/dev/null; then
     
     echo "Detected architecture: linux-$GO_ARCH"
     
-    # Download Go
     curl -L "https://go.dev/dl/go1.23.2.linux-$GO_ARCH.tar.gz" -o /tmp/go.tar.gz
-    
-    # Remove old installation if exists
     rm -rf /usr/local/go
-    
-    # Extract
     tar -C /usr/local -xzf /tmp/go.tar.gz
     rm /tmp/go.tar.gz
-    
-    # Update PATH for this session
     export PATH=$PATH:/usr/local/go/bin
-    
     echo "Go installed successfully."
 fi
 
@@ -72,8 +76,7 @@ fi
 # 4. Build Binary
 echo "Building Bleach binary..."
 cd "$INSTALL_DIR"
-# Ensure dependencies
-export GOCACHE="/tmp/go-build-cache" # Use temp cache for root build
+export GOCACHE="/tmp/go-build-cache"
 go mod tidy
 go build -o bleach ./cmd/bleach
 
@@ -84,6 +87,6 @@ echo "Creating symlink at $BIN_LINK..."
 ln -sf "$INSTALL_DIR/bleach" "$BIN_LINK"
 
 echo "========================================"
-echo "Bleach v1.0.0 installed successfully!"
+echo "Bleach v1.0.1 installed successfully!"
 echo "Run 'bleach' to start."
 echo "========================================"

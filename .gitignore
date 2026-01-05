@@ -140,9 +140,8 @@ cython_debug/
 *.swp
 *.swo
 
-linutil
 # Go
-bleach
+/bleach
 *.exe
 *.test
 *.out
