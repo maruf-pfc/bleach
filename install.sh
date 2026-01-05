@@ -18,15 +18,25 @@ fi
 echo "Installing Bleach v1.0.0..."
 
 # 1. Check for Go
-# Add standard Go path just in case sudo reset it
 export PATH=$PATH:/usr/local/go/bin
 
 if ! command -v go &>/dev/null; then
-    echo "Error: 'go' command not found."
-    echo "Tips:"
-    echo "  1. If Go is installed in your home directory, run this script with: sudo -E ./install.sh"
-    echo "  2. Or install Go globally: https://go.dev/doc/install"
-    exit 1
+    echo "Go not found. Installing Go 1.23.2..."
+    
+    # Download Go
+    curl -L "https://go.dev/dl/go1.23.2.linux-amd64.tar.gz" -o /tmp/go.tar.gz
+    
+    # Remove old installation if exists
+    rm -rf /usr/local/go
+    
+    # Extract
+    tar -C /usr/local -xzf /tmp/go.tar.gz
+    rm /tmp/go.tar.gz
+    
+    # Update PATH for this session
+    export PATH=$PATH:/usr/local/go/bin
+    
+    echo "Go installed successfully."
 fi
 
 # 2. Clean Install / Update

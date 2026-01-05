@@ -17,28 +17,25 @@ A lightning-fast, terminal-based system cleaner and dashboard for Linux, rewritt
 
 ## 🚀 Installation
 
-### From Source (Recommended)
+### One-Line Installer (Recommended)
+This script will install Go (if missing), clone the repo, and build the binary for you.
 
-Requires [Go 1.23+](https://go.dev/dl/) installed.
+```bash
+curl -sL https://raw.githubusercontent.com/maruf-pfc/bleach/main/install.sh | sudo bash
+```
+
+### From Source (Manual)
+If you prefer to control the build process:
 
 1.  Clone the repository:
     ```bash
     git clone https://github.com/maruf-pfc/bleach.git
     cd bleach
     ```
-2.  Build the binary:
+2.  Build:
     ```bash
     go build ./cmd/bleach
     ```
-3.  Run:
-    ```bash
-    ./bleach
-    ```
-
-### Optional: Install Globally
-```bash
-sudo mv bleach /usr/local/bin/
-```
 
 ## 🎮 Usage
 
