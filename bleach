@@ -5,23 +5,35 @@
 set -Eeuo pipefail
 
 # ---------------- CONFIGURATION ----------------
-export BLEACH_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# ---------------- CONFIGURATION ----------------
+export BLEACH_ROOT
+BLEACH_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export SRC_DIR="${BLEACH_ROOT}/src"
 export CORE_DIR="${SRC_DIR}/core"
 export MODULES_DIR="${SRC_DIR}/modules"
 
 # ---------------- IMPORTS ----------------
+# shellcheck disable=SC1091
 source "${CORE_DIR}/tui.sh"
+# shellcheck disable=SC1091
 source "${CORE_DIR}/logging.sh"
+# shellcheck disable=SC1091
 source "${CORE_DIR}/state.sh"
+# shellcheck disable=SC1091
 source "${CORE_DIR}/self_update.sh"
 
 # Source Modules for direct access (Auto-Clean)
+# shellcheck disable=SC1091
 source "${MODULES_DIR}/cleanup/apt.sh"
+# shellcheck disable=SC1091
 source "${MODULES_DIR}/cleanup/docker.sh"
+# shellcheck disable=SC1091
 source "${MODULES_DIR}/cleanup/logs.sh"
+# shellcheck disable=SC1091
 source "${MODULES_DIR}/cleanup/ide.sh"
+# shellcheck disable=SC1091
 source "${MODULES_DIR}/cleanup/dev.sh"
+# shellcheck disable=SC1091
 source "${MODULES_DIR}/cleanup/system.sh"
 
 # ---------------- MAIN ----------------
@@ -71,7 +83,8 @@ main() {
     # Weekly Auto-Update Check (Interactive)
     # Check timestamp file
     local last_check_file="${HOME}/.local/share/bleach/last_update_check"
-    local current_time=$(date +%s)
+    local current_time
+    current_time=$(date +%s)
     local last_check=0
     
     if [[ -f "$last_check_file" ]]; then
@@ -119,7 +132,7 @@ main() {
         HEADER=$(draw_header "$ACTIVE_TAB")
         
         # Sub-header / Status / Freed Space
-        STATUS_BAR=$(gum style --foreground 240 --width $(tput cols) --align center "$freed_text")
+        STATUS_BAR=$(gum style --foreground 240 --width "$(tput cols)" --align center "$freed_text")
         FULL_HEADER=$(gum join --vertical "$HEADER" "$STATUS_BAR")
         
         # Menu Options based on Active Tab
@@ -127,8 +140,8 @@ main() {
         # But user can also switch tabs.
         
         # Navigation Items (Always present)
-        local nav_items=("> System Cleanup" "> System Updates" "> Maintenance" "> View Logs" "> Exit")
-        
+        # nav_items removed as gum choose is used directly
+
         # We need a unified list. 
         # Strategy: The "Tab" is just visual context. The Menu is the controller.
         
@@ -185,18 +198,22 @@ run_module_menu() {
     local category=$1
     case "$category" in
         "cleanup")
+            # shellcheck disable=SC1091
             source "${MODULES_DIR}/cleanup/main.sh"
             run_cleanup_menu
             ;;
         "updates")
+            # shellcheck disable=SC1091
             source "${MODULES_DIR}/updates/main.sh"
             run_updates_menu
             ;;
         "maintenance")
+            # shellcheck disable=SC1091
             source "${MODULES_DIR}/maintenance/main.sh"
             run_maintenance_menu
             ;;
         "gaming")
+            # shellcheck disable=SC1091
             source "${MODULES_DIR}/gaming/main.sh"
             run_gaming_menu
             ;;
