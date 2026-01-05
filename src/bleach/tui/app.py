@@ -287,5 +287,25 @@ class BleachApp(App):
         self.theme = "bleach" if self.theme == "default" else "default"
 
 if __name__ == "__main__":
+    import os
+    import shutil
+    import sys
+
+    # Auto-elevate to root
+    if os.geteuid() != 0:
+        # Check if sudo is available
+        if not shutil.which("sudo"):
+            print("Error: 'sudo' is required to run this application.")
+            print("Please install sudo or run as root.")
+            sys.exit(1)
+
+        print("Bleach requires root privileges to clean system files.")
+        print("Restarting with sudo...")
+
+        # Replace current process with sudo
+        # usage: sudo python3 script.py [args]
+        args = ["sudo", sys.executable] + sys.argv
+        os.execvp("sudo", args)
+
     app = BleachApp()
     app.run()
