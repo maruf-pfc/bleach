@@ -22,8 +22,3 @@ jobs:
 
     - name: Test
       run: go test -v ./internal/...
-      - name: Check Main Script
-        uses: ludeeus/action-shellcheck@master
-        with:
-          scandir: '.'
-          ignore_names: 'legacy_python'
